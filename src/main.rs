@@ -1,35 +1,53 @@
-use std::{env,fs,io};
-use std::io::{BufRead, Write};
+use std::{env,fs,process};
+use std::io::{stdin, BufRead, Write};
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
+    let mut lox: Lox = Lox { hadError:false };
     match args.len() {
-        0 => runPrompt(),
-        1 => runFile(&args[0]),
+        0 => Lox::runPrompt(&mut lox),
+        1 => Lox::runFile(&mut lox, &args[0]),
         _ => panic!("Usage: rlox [script]")
     }
 }
 
-fn runFile(path: &String) {
-    let contents = fs::read_to_string(path).expect(format!("Failed to read file from {}", path).as_str());
+struct Lox {
+    hadError: bool,
 }
 
-fn runPrompt() {
-    let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        match line {
-            Ok(line) => run(line),
-            Err(_) => break,
+impl Lox {
+    fn runFile(&mut self, path: &String) {
+        let contents = fs::read_to_string(path).expect(format!("Failed to read file from {}", path).as_str());
+        self.run(contents);
+        if self.hadError {process::exit(65);}
+    }
+
+    fn runPrompt(&mut self) {
+        let stdin = stdin();
+        for line in stdin.lock().lines() {
+            match line {
+                Ok(line) => Lox::run(self, line),
+                Err(_) => break,
+            }
         }
     }
-}
 
-fn run(source: String) {
-    let scanner: Scanner = Scanner {source};
-    let tokens = scanner.scanTokens();
+    fn run(&mut self, source: String) {
+        let scanner: Scanner = Scanner { source };
+        let tokens = scanner.scanTokens();
 
-    for token in tokens {
-        println!("{:?}", token);
+        for token in tokens {
+            println!("{:?}", token);
+        }
+    }
+
+    pub fn error(mut self, line: usize, message: String) {
+        Lox::report(self, line, "".to_string(), message);
+    }
+
+    fn report(mut self, line: usize, location: String, message: String) {
+        println!("[line {}] Error{}: {}", line, location, message);
+        self.hadError = true;
     }
 }
 
