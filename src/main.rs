@@ -1,5 +1,6 @@
 use std::{env,fs,process};
 use std::io::{stdin, BufRead, Write};
+use Token as LoxToken;
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
