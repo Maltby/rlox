@@ -1,5 +1,6 @@
 use clap::{App,Arg};
 use std::fs;
+use std::io;
 
 fn main() {
     let args = App::new("rlox")
@@ -24,5 +25,8 @@ fn run_file(filepath: &str) {
 }
 
 fn run_prompt() {
-    print!("runPrompt()");
+    let lines = io::stdin().lines();
+    for line in lines {
+        println!("got a line: {}", line.unwrap());
+    }
 }
