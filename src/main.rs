@@ -21,12 +21,28 @@ fn main() {
 fn run_file(filepath: &str) {
     let contents = fs::read_to_string(filepath)
         .expect(&format!("Failed to read from given filepath: {:?}", filepath));
-    println!("Contents: {contents}");
+    run(contents);
 }
 
 fn run_prompt() {
     let lines = io::stdin().lines();
     for line in lines {
-        println!("got a line: {}", line.unwrap());
+        run(line.unwrap());
     }
+}
+
+struct Scanner {
+    source: String
+}
+impl Scanner {
+    fn scan_tokens(&mut self) {
+        for line in self.source.lines() {
+            println!("line: {}", line);
+        }
+    }
+}
+
+fn run(source: String) {
+    let mut scanner: Scanner = Scanner {source};
+    scanner.scan_tokens();
 }
