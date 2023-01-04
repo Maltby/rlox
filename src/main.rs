@@ -1,4 +1,5 @@
 use clap::{App,Arg};
+use std::fs;
 
 fn main() {
     let args = App::new("rlox")
@@ -17,7 +18,9 @@ fn main() {
 }
 
 fn run_file(filepath: &str) {
-    print!("{:}", filepath);
+    let contents = fs::read_to_string(filepath)
+        .expect(&format!("Failed to read from given filepath: {:?}", filepath));
+    println!("Contents: {contents}");
 }
 
 fn run_prompt() {
