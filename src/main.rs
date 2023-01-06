@@ -1,6 +1,7 @@
 mod lox;
+mod token_type;
 
 fn main() {
-    let lox = lox::Lox { had_error: false };
+    let mut lox = lox::Lox { had_error: false };
     lox.main();
 }
