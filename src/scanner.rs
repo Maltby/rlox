@@ -11,14 +11,9 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(source: String) -> Self {
-        Scanner {
-            source,
-            view: "".to_string(),
-            tokens: vec!(),
-            start: 0,
-            current: 0,
-            line: 1,
-        }
+        let mut scanner = Scanner::default();
+        scanner.source = source;
+        scanner
     }
 
     pub fn scan_tokens(&mut self) {
@@ -66,6 +61,19 @@ impl Scanner {
             lexeme: view.to_owned(),
             literal,
             line,
+        }
+    }
+}
+
+impl Default for Scanner {
+    fn default() -> Self {
+        Scanner {
+            source: "".to_string(),
+            view: "".to_string(),
+            tokens: vec!(),
+            start: 0,
+            current: 0,
+            line: 1,
         }
     }
 }
