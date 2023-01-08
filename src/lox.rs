@@ -2,6 +2,7 @@ use clap::{App,Arg};
 use std::fs;
 use std::io;
 use std::process;
+use rlox::scanner::Scanner;
 
 pub struct Lox {
     pub had_error: bool
@@ -39,9 +40,9 @@ impl Lox {
     }
 
     fn run(source: String) {
-        let mut scanner: Scanner = Scanner {source};
-        let tokens = scanner.scan_tokens();
-        for token in tokens {
+        let mut scanner: Scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        for token in scanner.tokens {
             println!("token: {token}");
         }
     }
@@ -55,15 +56,4 @@ impl Lox {
     }
 }
 
-struct Scanner {
-    source: String
-}
-impl Scanner {
-    fn scan_tokens(&mut self) -> Vec<&str> {
-        let mut tokens: Vec<&str> = vec!();
-        for line in self.source.lines() {
-            tokens.push(line);
-        }
-        tokens
-    }
-}
+

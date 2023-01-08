@@ -1,6 +1,6 @@
 use std::fmt; 
 #[derive(Debug)]
-enum TokenType {
+pub enum TokenType {
     // Single and double char tokens
     LeftParen, RightParen,
     LeftBrace, RightBrace,
@@ -42,14 +42,20 @@ impl fmt::Display for TokenType {
     }
 }
 
-struct Token<T: fmt::Display> {
+#[derive(Debug)]
+pub enum Literal {
+    Number(f64),
+    String(String),
+}
+
+pub struct Token {
     pub r#type: TokenType,
     pub lexeme: String,
-    pub literal: T,
+    pub literal: Option<Literal>, // could be either a string or a number
     pub line: usize,
 }
-impl<T: fmt::Display> Token<T> {
-    pub fn to_string(&self) -> String {
-        format!("{} {} {}", self.r#type, self.lexeme, self.literal)
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {} {:?}", self.r#type, self.lexeme, self.literal)
     }
 }
