@@ -2,7 +2,7 @@ use clap::{App,Arg};
 use std::fs;
 use std::io;
 use std::process;
-use rlox::scanner::Scanner;
+use crate::scanner::Scanner;
 
 pub struct Lox {
     pub had_error: bool
@@ -24,36 +24,45 @@ impl Lox {
         }
     }
 
-    fn run_file(&self, filepath: &str) {
+    fn run_file(&mut self, filepath: &str) {
         let contents = fs::read_to_string(filepath)
             .expect(&format!("Failed to read from given filepath: {:?}", filepath));
-        Lox::run(contents);
-        if self.had_error {process::exit(65);}
+        Lox::run(self, contents);
+        if self.had_error {
+            process::exit(65);
+        }
     }
 
     fn run_prompt(&mut self) {
         let lines = io::stdin().lines();
         for line in lines {
-            Lox::run(line.unwrap());
+            Lox::run(self, line.unwrap());
             self.had_error = false;
         }
     }
 
-    fn run(source: String) {
-        let mut scanner: Scanner = Scanner::new(source);
-        scanner.scan_tokens();
-        for token in scanner.tokens {
-            println!("token: {token}");
-        }
+    fn run(&mut self, source: String) {
+        match Scanner::scan_tokens(source) {
+            Ok(tokens) => {
+                for token in tokens {
+                    println!("token: {token}");
+                };
+            },
+            Err(errors) => {
+                self.had_error = true;
+                for error in errors {
+                    Self::report(error, "");
+                }
+            }
+        };
     }
 
-    fn error(line: usize, message: &str) {
-        Lox::report(line, "", message);
-    }
-
-    fn report(line: usize, _where: &str, message: &str) {
-        println!("[line {line}] Error{_where}: {message}");
+    fn report(error: Error, _where: &str) {
+        println!("[line {0}] Error{1}: {2}", error.line, _where, error.message);
     }
 }
 
-
+pub struct Error {
+    pub line: usize,
+    pub message: String,
+}

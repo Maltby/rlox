@@ -1,4 +1,5 @@
 use crate::token_type::*;
+use crate::lox;
 
 pub struct Scanner {
     source: String,
@@ -16,38 +17,54 @@ impl Scanner {
         scanner
     }
 
-    pub fn scan_tokens(&mut self) {
-        for c in self.source.chars() {
-            self.start = self.current;
-            self.view.push(c);
-            if let Some(token) = Self::scan_token(&mut self.view, self.line) {
-                self.tokens.push(token);
-                self.view = "".to_string();
+    pub fn scan_tokens(source: String) -> Result<Vec<Token>, Vec<lox::Error>> {
+        let mut scanner: Scanner = Self::new(source);
+        let mut errors = vec!();
+        for c in scanner.source.chars() {
+            scanner.start = scanner.current;
+            scanner.view.push(c);
+            match Self::scan_token(&mut scanner.view, scanner.line) {
+                Ok(token) => {
+                    scanner.tokens.push(token);
+                    scanner.view = "".to_string();
+                }
+                Err(e) => {
+                    errors.push(e);
+                }
             }
         }
-        self.tokens.push(
+        scanner.tokens.push(
             Token { 
                 r#type: TokenType::Eof,
                 lexeme: "".to_string(),
                 literal: None,
-                line: self.line,
+                line: scanner.line,
             }
         );
+        if errors.is_empty() {
+            return Ok(scanner.tokens);
+        }
+        return Err(errors);
     }
 
-    fn scan_token(view: &mut String, line: usize) -> Option<Token> {
+    fn scan_token(view: &mut String, line: usize) -> Result<Token, lox::Error> {
         match view.as_str() {
-           "(" => Some(Self::create_token(TokenType::LeftParen, view, line)),
-           ")" => Some(Self::create_token(TokenType::RightParen, view, line)),
-           "{" => Some(Self::create_token(TokenType::LeftBrace, view, line)),
-           "}" => Some(Self::create_token(TokenType::RightBrace, view, line)),
-           "," => Some(Self::create_token(TokenType::Comma, view, line)),
-           "." => Some(Self::create_token(TokenType::Dot, view, line)),
-           "-" => Some(Self::create_token(TokenType::Minus, view, line)),
-           "+" => Some(Self::create_token(TokenType::Plus, view, line)),
-           ";" => Some(Self::create_token(TokenType::Semicolon, view, line)),
-           "*" => Some(Self::create_token(TokenType::Star, view, line)),
-           _ => None
+            "(" => Ok(Self::create_token(TokenType::LeftParen, view, line)),
+            ")" => Ok(Self::create_token(TokenType::RightParen, view, line)),
+            "{" => Ok(Self::create_token(TokenType::LeftBrace, view, line)),
+            "}" => Ok(Self::create_token(TokenType::RightBrace, view, line)),
+            "," => Ok(Self::create_token(TokenType::Comma, view, line)),
+            "." => Ok(Self::create_token(TokenType::Dot, view, line)),
+            "-" => Ok(Self::create_token(TokenType::Minus, view, line)),
+            "+" => Ok(Self::create_token(TokenType::Plus, view, line)),
+            ";" => Ok(Self::create_token(TokenType::Semicolon, view, line)),
+            "*" => Ok(Self::create_token(TokenType::Star, view, line)),
+            _ => Err(
+                lox::Error {
+                    line,
+                    message: "Unexpected character.".to_string()
+                }
+                )
         }
     }
 
