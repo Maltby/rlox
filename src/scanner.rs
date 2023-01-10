@@ -2,8 +2,8 @@ use crate::token_type::*;
 use crate::lox;
 
 pub struct Scanner {
-    source: String,
     view: String, // Current char(s) being scanned
+    chars: std::iter::Peekable<std::vec::IntoIter<char>>,
     pub tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -12,18 +12,20 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(source: String) -> Self {
-        let mut scanner = Scanner::default();
-        scanner.source = source;
-        scanner
+        Scanner {
+            chars: source.chars().collect::<Vec<_>>().into_iter().peekable(),
+            ..Default::default()
+        }
     }
 
     pub fn scan_tokens(source: String) -> Result<Vec<Token>, Vec<lox::Error>> {
         let mut scanner: Scanner = Self::new(source);
         let mut errors = vec!();
-        for c in scanner.source.chars() {
+        while scanner.chars.peek().is_some() {
+            let c = scanner.chars.next().unwrap();
             scanner.start = scanner.current;
             scanner.view.push(c);
-            match Self::scan_token(&mut scanner.view, scanner.line) {
+            match scanner.scan_token() {
                 Ok(token) => {
                     scanner.tokens.push(token);
                     scanner.view = "".to_string();
@@ -40,28 +42,28 @@ impl Scanner {
                 literal: None,
                 line: scanner.line,
             }
-        );
+            );
         if errors.is_empty() {
             return Ok(scanner.tokens);
         }
-        return Err(errors);
+        Err(errors)
     }
 
-    fn scan_token(view: &mut String, line: usize) -> Result<Token, lox::Error> {
-        match view.as_str() {
-            "(" => Ok(Self::create_token(TokenType::LeftParen, view, line)),
-            ")" => Ok(Self::create_token(TokenType::RightParen, view, line)),
-            "{" => Ok(Self::create_token(TokenType::LeftBrace, view, line)),
-            "}" => Ok(Self::create_token(TokenType::RightBrace, view, line)),
-            "," => Ok(Self::create_token(TokenType::Comma, view, line)),
-            "." => Ok(Self::create_token(TokenType::Dot, view, line)),
-            "-" => Ok(Self::create_token(TokenType::Minus, view, line)),
-            "+" => Ok(Self::create_token(TokenType::Plus, view, line)),
-            ";" => Ok(Self::create_token(TokenType::Semicolon, view, line)),
-            "*" => Ok(Self::create_token(TokenType::Star, view, line)),
+    fn scan_token(&mut self) -> Result<Token, lox::Error> {
+        match self.view.as_str() {
+            "(" => Ok(Self::create_token(TokenType::LeftParen, &mut self.view, self.line)),
+            ")" => Ok(Self::create_token(TokenType::RightParen, &mut self.view, self.line)),
+            "{" => Ok(Self::create_token(TokenType::LeftBrace, &mut self.view, self.line)),
+            "}" => Ok(Self::create_token(TokenType::RightBrace, &mut self.view, self.line)),
+            "," => Ok(Self::create_token(TokenType::Comma, &mut self.view, self.line)),
+            "." => Ok(Self::create_token(TokenType::Dot, &mut self.view, self.line)),
+            "-" => Ok(Self::create_token(TokenType::Minus, &mut self.view, self.line)),
+            "+" => Ok(Self::create_token(TokenType::Plus, &mut self.view, self.line)),
+            ";" => Ok(Self::create_token(TokenType::Semicolon, &mut self.view, self.line)),
+            "*" => Ok(Self::create_token(TokenType::Star, &mut self.view, self.line)),
             _ => Err(
                 lox::Error {
-                    line,
+                    line: self.line,
                     message: "Unexpected character.".to_string()
                 }
                 )
@@ -85,12 +87,20 @@ impl Scanner {
 impl Default for Scanner {
     fn default() -> Self {
         Scanner {
-            source: "".to_string(),
             view: "".to_string(),
+            chars: "".to_string().chars().collect::<Vec<_>>().into_iter().peekable(),
             tokens: vec!(),
             start: 0,
             current: 0,
             line: 1,
         }
+    }
+}
+
+impl Iterator for Scanner {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.chars.next()
     }
 }
