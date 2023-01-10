@@ -61,6 +61,42 @@ impl Scanner {
             "+" => Ok(Self::create_token(TokenType::Plus, &mut self.view, self.line)),
             ";" => Ok(Self::create_token(TokenType::Semicolon, &mut self.view, self.line)),
             "*" => Ok(Self::create_token(TokenType::Star, &mut self.view, self.line)),
+            "!" => {
+                match self.chars.peek() {
+                    Some('=') => {
+                        self.chars.next();
+                        Ok(Self::create_token(TokenType::BangEqual, &mut self.view, self.line))
+                    },
+                    _ => Ok(Self::create_token(TokenType::Bang, &mut self.view, self.line))
+                }
+            }
+            "=" => {
+                match self.chars.peek() {
+                    Some('=') => {
+                        self.chars.next();
+                        Ok(Self::create_token(TokenType::EqualEqual, &mut self.view, self.line))
+                    },
+                    _ => Ok(Self::create_token(TokenType::Equal, &mut self.view, self.line))
+                }
+            }
+            "<" => {
+                match self.chars.peek() {
+                    Some('=') => {
+                        self.chars.next();
+                        Ok(Self::create_token(TokenType::LessEqual, &mut self.view, self.line))
+                    },
+                    _ => Ok(Self::create_token(TokenType::Less, &mut self.view, self.line))
+                }
+            }
+            ">" => {
+                match self.chars.peek() {
+                    Some('=') => {
+                        self.chars.next();
+                        Ok(Self::create_token(TokenType::GreaterEqual, &mut self.view, self.line))
+                    },
+                    _ => Ok(Self::create_token(TokenType::Greater, &mut self.view, self.line))
+                }
+            }
             _ => Err(
                 lox::Error {
                     line: self.line,
