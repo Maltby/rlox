@@ -130,7 +130,9 @@ impl Scanner {
     fn scan_string(&mut self) -> Option<Literal> {
         let mut string = "".to_owned();
         while self.chars.peek() != Some(&'"') {
-            string.push(self.chars.next().unwrap());
+            let c = self.chars.next().unwrap();
+            if c == '\n' {self.line += 1;}
+            string.push(c);
         }
         self.view.push(self.chars.next().unwrap());
         Some(Literal::String(string))
