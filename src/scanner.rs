@@ -21,21 +21,9 @@ impl Scanner {
 
     pub fn scan_tokens(source: String) -> Result<Vec<Token>, Vec<lox::Error>> {
         let mut scanner: Scanner = Self::new(source);
-        let mut errors = vec!();
         while scanner.chars.peek().is_some() {
-            let c = scanner.chars.next().unwrap();
             scanner.start = scanner.current;
-            scanner.view.push(c);
             scanner.scan_token();
-            // match scanner.scan_token() {
-            //     Ok(token) => {
-            //         scanner.tokens.push(token);
-            //         scanner.view = "".to_string();
-            //     }
-            //     Err(e) => {
-            //         errors.push(e);
-            //     }
-            // }
         }
         scanner.tokens.push(
             Token { 
@@ -45,13 +33,14 @@ impl Scanner {
                 line: scanner.line,
             }
             );
-        if errors.is_empty() {
+        if scanner.errors.is_empty() {
             return Ok(scanner.tokens);
         }
-        Err(errors)
+        Err(scanner.errors)
     }
 
     fn scan_token(&mut self) {
+        self.view.push(self.chars.next().unwrap());
         match self.view.as_str() {
             "(" => self.tokens.push(Self::create_token(TokenType::LeftParen, &mut self.view, self.line)),
             ")" => self.tokens.push(Self::create_token(TokenType::RightParen, &mut self.view, self.line)),
@@ -66,7 +55,7 @@ impl Scanner {
             "!" => {
                 match self.chars.peek() {
                     Some('=') => {
-                        self.chars.next();
+                        self.view.push(self.chars.next().unwrap());
                         self.tokens.push(Self::create_token(TokenType::BangEqual, &mut self.view, self.line))
                     },
                     _ => self.tokens.push(Self::create_token(TokenType::Bang, &mut self.view, self.line))
@@ -75,7 +64,7 @@ impl Scanner {
             "=" => {
                 match self.chars.peek() {
                     Some('=') => {
-                        self.chars.next();
+                        self.view.push(self.chars.next().unwrap());
                         self.tokens.push(Self::create_token(TokenType::EqualEqual, &mut self.view, self.line))
                     },
                     _ => self.tokens.push(Self::create_token(TokenType::Equal, &mut self.view, self.line))
@@ -84,7 +73,7 @@ impl Scanner {
             "<" => {
                 match self.chars.peek() {
                     Some('=') => {
-                        self.chars.next();
+                        self.view.push(self.chars.next().unwrap());
                         self.tokens.push(Self::create_token(TokenType::LessEqual, &mut self.view, self.line))
                     },
                     _ => self.tokens.push(Self::create_token(TokenType::Less, &mut self.view, self.line))
@@ -93,7 +82,7 @@ impl Scanner {
             ">" => {
                 match self.chars.peek() {
                     Some('=') => {
-                        self.chars.next();
+                        self.view.push(self.chars.next().unwrap());
                         self.tokens.push(Self::create_token(TokenType::GreaterEqual, &mut self.view, self.line))
                     },
                     _ => self.tokens.push(Self::create_token(TokenType::Greater, &mut self.view, self.line))
@@ -110,15 +99,18 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Slash, &mut self.view, self.line))
                 }
             }
-            _ => {
+            " " | "\r" | "\t" => {},
+            "\n" => self.line += 1,
+            other => {
                 self.errors.push(
                     lox::Error {
                         line: self.line,
-                        message: "Unexpected character.".to_string()
+                        message: format!("Unexpected character: {}", other)
                     }
                     );
             }
         }
+        self.view = "".to_string();
     }
 
     fn create_token(r#type: TokenType, view: &mut String, line: usize) -> Token {
