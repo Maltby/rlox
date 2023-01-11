@@ -99,6 +99,20 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Slash, &mut self.view, self.line))
                 }
             }
+            "\"" => {
+                match self.scan_string() {
+                    Some(string) => self.tokens.push(Self::create_token_with_literal(TokenType::String, &mut self.view, self.line, Some(string))),
+                    None => {
+                        self.errors.push(
+                            lox::Error {
+                                line: self.line,
+                                message: format!("Failed to parse string: {}", self.view),
+                            }
+                            )
+
+                    }
+                }
+            }
             " " | "\r" | "\t" => {},
             "\n" => self.line += 1,
             other => {
@@ -111,6 +125,15 @@ impl Scanner {
             }
         }
         self.view = "".to_string();
+    }
+
+    fn scan_string(&mut self) -> Option<Literal> {
+        let mut string = "".to_owned();
+        while self.chars.peek() != Some(&'"') {
+            string.push(self.chars.next().unwrap());
+        }
+        self.view.push(self.chars.next().unwrap());
+        Some(Literal::String(string))
     }
 
     fn create_token(r#type: TokenType, view: &mut String, line: usize) -> Token {
