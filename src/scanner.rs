@@ -40,19 +40,20 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
-        self.view.push(self.chars.next().unwrap());
-        match self.view.as_str() {
-            "(" => self.tokens.push(Self::create_token(TokenType::LeftParen, &mut self.view, self.line)),
-            ")" => self.tokens.push(Self::create_token(TokenType::RightParen, &mut self.view, self.line)),
-            "{" => self.tokens.push(Self::create_token(TokenType::LeftBrace, &mut self.view, self.line)),
-            "}" => self.tokens.push(Self::create_token(TokenType::RightBrace, &mut self.view, self.line)),
-            "," => self.tokens.push(Self::create_token(TokenType::Comma, &mut self.view, self.line)),
-            "." => self.tokens.push(Self::create_token(TokenType::Dot, &mut self.view, self.line)),
-            "-" => self.tokens.push(Self::create_token(TokenType::Minus, &mut self.view, self.line)),
-            "+" => self.tokens.push(Self::create_token(TokenType::Plus, &mut self.view, self.line)),
-            ";" => self.tokens.push(Self::create_token(TokenType::Semicolon, &mut self.view, self.line)),
-            "*" => self.tokens.push(Self::create_token(TokenType::Star, &mut self.view, self.line)),
-            "!" => {
+        let c = self.chars.next().unwrap();
+        self.view.push(c);
+        match c {
+            '(' => self.tokens.push(Self::create_token(TokenType::LeftParen, &mut self.view, self.line)),
+            ')' => self.tokens.push(Self::create_token(TokenType::RightParen, &mut self.view, self.line)),
+            '{' => self.tokens.push(Self::create_token(TokenType::LeftBrace, &mut self.view, self.line)),
+            '}' => self.tokens.push(Self::create_token(TokenType::RightBrace, &mut self.view, self.line)),
+            ',' => self.tokens.push(Self::create_token(TokenType::Comma, &mut self.view, self.line)),
+            '.' => self.tokens.push(Self::create_token(TokenType::Dot, &mut self.view, self.line)),
+            '-' => self.tokens.push(Self::create_token(TokenType::Minus, &mut self.view, self.line)),
+            '+' => self.tokens.push(Self::create_token(TokenType::Plus, &mut self.view, self.line)),
+            ';' => self.tokens.push(Self::create_token(TokenType::Semicolon, &mut self.view, self.line)),
+            '*' => self.tokens.push(Self::create_token(TokenType::Star, &mut self.view, self.line)),
+            '!' => {
                 match self.chars.peek() {
                     Some('=') => {
                         self.view.push(self.chars.next().unwrap());
@@ -61,7 +62,7 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Bang, &mut self.view, self.line))
                 }
             }
-            "=" => {
+            '=' => {
                 match self.chars.peek() {
                     Some('=') => {
                         self.view.push(self.chars.next().unwrap());
@@ -70,7 +71,7 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Equal, &mut self.view, self.line))
                 }
             }
-            "<" => {
+            '<' => {
                 match self.chars.peek() {
                     Some('=') => {
                         self.view.push(self.chars.next().unwrap());
@@ -79,7 +80,7 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Less, &mut self.view, self.line))
                 }
             }
-            ">" => {
+            '>' => {
                 match self.chars.peek() {
                     Some('=') => {
                         self.view.push(self.chars.next().unwrap());
@@ -88,7 +89,7 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Greater, &mut self.view, self.line))
                 }
             }
-            "/" => {
+            '/' => {
                 match self.chars.peek() {
                     Some('/') => {
                         self.chars.next();
@@ -99,7 +100,7 @@ impl Scanner {
                     _ => self.tokens.push(Self::create_token(TokenType::Slash, &mut self.view, self.line))
                 }
             }
-            "\"" => {
+            '"' => {
                 match self.scan_string() {
                     Some(string) => self.tokens.push(Self::create_token_with_literal(TokenType::String, &mut self.view, self.line, Some(string))),
                     None => {
@@ -113,8 +114,16 @@ impl Scanner {
                     }
                 }
             }
-            " " | "\r" | "\t" => {},
-            "\n" => self.line += 1,
+            '0'..='9' => {
+                match self.scan_number() {
+                    Ok(number) => self.tokens.push(Self::create_token_with_literal(TokenType::Number, &mut self.view, self.line, Some(number))),
+                    Err(e) => {
+                        self.errors.push(e);
+                    }
+                }
+            }
+            ' ' | '\r' | '\t' => {}
+            '\n' => {self.line += 1}
             other => {
                 self.errors.push(
                     lox::Error {
@@ -125,6 +134,35 @@ impl Scanner {
             }
         }
         self.view = "".to_string();
+    }
+
+    fn scan_number(&mut self) -> Result<Literal, lox::Error> {
+        let mut number = self.view.clone();
+        while Scanner::is_digit(self.chars.peek()) {
+            number.push(self.chars.next().unwrap());
+        }
+        if self.chars.peek() == Some(&'.') {
+            number.push(self.chars.next().unwrap());
+            while Scanner::is_digit(self.chars.peek()) {
+                number.push(self.chars.next().unwrap());
+            }
+        }
+        match number.parse() {
+            Ok(number) => Ok(Literal::Number(number)),
+            Err(e) => Err(
+                lox::Error {
+                    line: self.line,
+                    message: format!("Failed to parse number: {}, {}", self.view, e),
+                }
+                )
+        }
+    }
+
+    fn is_digit(c: Option<&char>) -> bool {
+        match c {
+            Some(c) => ('0'..='9').contains(c),
+            None => false
+        }
     }
 
     fn scan_string(&mut self) -> Option<Literal> {
