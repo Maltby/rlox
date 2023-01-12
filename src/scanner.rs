@@ -122,6 +122,14 @@ impl Scanner {
                     }
                 }
             }
+            'a'..='z' | 'A'..='Z' | '_' => {
+                match self.scan_identifier() {
+                    Ok(identifier) => self.tokens.push(Self::create_token(identifier, &mut self.view, self.line)),
+                    Err(e) => {
+                        self.errors.push(e);
+                    }
+                }
+            }
             ' ' | '\r' | '\t' => {}
             '\n' => {self.line += 1}
             other => {
@@ -134,6 +142,48 @@ impl Scanner {
             }
         }
         self.view = "".to_string();
+    }
+
+    fn scan_identifier(&mut self) -> Result<TokenType, lox::Error> {
+        while Scanner::is_alphanumeric(self.chars.peek()) {
+            self.view.push(self.chars.next().unwrap())
+        };
+        let token = match self.view.as_str() {
+            "and" => TokenType::And,
+            "class" => TokenType::Class,
+            "else" => TokenType::Else,
+            "false" => TokenType::False,
+            "for" => TokenType::For,
+            "fun" => TokenType::Fun,
+            "if" => TokenType::If,
+            "nil" => TokenType::Nil,
+            "or" => TokenType::Or,
+            "print" => TokenType::Print,
+            "return" => TokenType::Return,
+            "super" => TokenType::Super,
+            "this" => TokenType::This,
+            "true" => TokenType::True,
+            "var" => TokenType::Var,
+            "while" => TokenType::While,
+            _ => TokenType::Identifier,
+        };
+        Ok(token)
+    }
+
+    fn is_alphanumeric(c: Option<&char>) -> bool {
+        Scanner::is_alpha(c) || Scanner::is_digit(c)
+    }
+
+    fn is_alpha(c: Option<&char>) -> bool {
+        match c {
+            Some(c) => {
+                match c {
+                    'a'..='z' | 'A'..='Z' | '_' => true,
+                    _ => false
+                }
+            }
+            None => false
+        }
     }
 
     fn scan_number(&mut self) -> Result<Literal, lox::Error> {
