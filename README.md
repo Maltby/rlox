@@ -8,5 +8,5 @@ grouping   -> "(" expression ")";
 unary      -> ( "-" | "!" ) expression;
 binary     -> expression operator expression;
 operator   -> "==" | "!=" | "<" | "<=" | ">" | ">=" |
-			  "+" | "-" | "*" | "/";
+              "+" | "-" | "*" | "/";
 ```

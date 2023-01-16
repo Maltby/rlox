@@ -47,6 +47,14 @@ pub enum Literal {
     Number(f64),
     String(String),
 }
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Literal::Number(x) => write!(f, "{}", x),
+            Literal::String(x) => write!(f, "{}", x),
+        }
+    }
+}
 
 pub struct Token {
     pub r#type: TokenType,
@@ -56,6 +64,9 @@ pub struct Token {
 }
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {} {:?}", self.r#type, self.lexeme, self.literal)
+        match &self.literal {
+            Some(literal) => write!(f, "{}", literal),
+            None => write!(f, "{}", self.lexeme),
+        }
     }
 }
