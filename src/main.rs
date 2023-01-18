@@ -2,6 +2,7 @@ mod lox;
 mod scanner;
 mod token_type;
 mod expr;
+mod parser;
 
 fn main() {
     let e = expr::Expr::Binary(Box::new(expr::Binary{
