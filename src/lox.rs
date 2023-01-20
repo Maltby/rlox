@@ -3,6 +3,7 @@ use std::fs;
 use std::io;
 use std::process;
 use crate::scanner::Scanner;
+use crate::parser::*;
 
 pub struct Lox {
     pub had_error: bool
@@ -42,19 +43,23 @@ impl Lox {
     }
 
     fn run(&mut self, source: String) {
-        match Scanner::scan_tokens(source) {
-            Ok(tokens) => {
-                for token in tokens {
-                    println!("token: {token}");
-                };
-            },
+        let tokens = match Scanner::scan_tokens(source) {
+            Ok(tokens) => tokens,
             Err(errors) => {
                 self.had_error = true;
                 for error in errors {
                     Self::report(error, "");
                 }
+                return;
             }
         };
+        for token in tokens.iter() {
+            println!("token: {}", token);
+        }
+        match Parser::parse(tokens) {
+            Ok(expr) => println!("{}", expr),
+            Err(e) => println!("{}", e),
+        }
     }
 
     fn report(error: Error, _where: &str) {

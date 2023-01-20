@@ -17,6 +17,11 @@ pub struct Parser {
     tokens: std::iter::Peekable<std::vec::IntoIter<token_type::Token>>,
 }
 impl Parser {
+    pub fn parse(tokens: Vec<token_type::Token>) -> Result<expr::Expr, ParseError> {
+        let mut parser = Parser{tokens: tokens.into_iter().peekable()};
+        parser.expression()
+    }
+
     // BNF: expression -> equality ;
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
         self.equality() 
@@ -153,9 +158,7 @@ impl Parser {
                         Err(e) => return Err(e)
                     }
                 },
-                _ => {
-                    return Err(ParseError{description: "Expected Bang or Minus token".to_string()})
-                },
+                _ => {},
             }
         }
         self.primary()
@@ -184,16 +187,21 @@ impl Parser {
                 }
             }
             token_type::TokenType::LeftParen => {
-                let expr = self.expression();
-                if self.tokens.peek().unwrap().r#type == token_type::TokenType::RightParen {
-                    self.tokens.next(); // consume RightParen
-                    Ok(expr::Expr::Grouping(Box::new(
-                            expr::Grouping {
-                                expression: expr
-                            })))
-                } else {
-                    Err(ParseError{description: "Grouping did not end in right paren".to_string()})
+                match self.expression() {
+                    Ok(expr) => {
+                        if self.tokens.peek().unwrap().r#type == token_type::TokenType::RightParen {
+                            self.tokens.next(); // consume RightParen
+                            Ok(expr::Expr::Grouping(Box::new(
+                                        expr::Grouping {
+                                            expression: expr
+                                        })))
+                        } else {
+                            Err(ParseError{description: "Grouping did not end in right paren".to_string()})
+                        }
+                    },
+                    Err(e) => Err(e),
                 }
+
             },
             _ => Err(ParseError{description: format!("Unexpected token: {}", token)})
         }
