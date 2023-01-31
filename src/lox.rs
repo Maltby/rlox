@@ -4,6 +4,7 @@ use std::io;
 use std::process;
 use crate::scanner::Scanner;
 use crate::parser::*;
+use crate::interpreter::interpret;
 
 pub struct Lox {
     pub had_error: bool
@@ -53,11 +54,13 @@ impl Lox {
                 return;
             }
         };
-        for token in tokens.iter() {
-            println!("token: {}", token);
-        }
         match Parser::parse(tokens) {
-            Ok(expr) => println!("{}", expr),
+            Ok(expr) => {
+                match interpret(expr) {
+                    Ok(value) => println!("{}", value),
+                    Err(e) => println!("{}", e)
+                }
+            }
             Err(e) => println!("{}", e),
         }
     }
