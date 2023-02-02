@@ -1,5 +1,6 @@
-use crate::token_type;
 use crate::expr;
+use crate::stmt;
+use crate::token_type;
 use std::{error::Error, fmt};
 
 #[derive(Debug)]
@@ -17,14 +18,69 @@ pub struct Parser {
     tokens: std::iter::Peekable<std::vec::IntoIter<token_type::Token>>,
 }
 impl Parser {
-    pub fn parse(tokens: Vec<token_type::Token>) -> Result<expr::Expr, ParseError> {
-        let mut parser = Parser{tokens: tokens.into_iter().peekable()};
-        parser.expression()
+    pub fn parse(tokens: Vec<token_type::Token>) -> Result<Vec<stmt::Stmt>, ParseError> {
+        let mut parser = Parser {
+            tokens: tokens.into_iter().peekable(),
+        };
+        let stmts = vec![];
+        while let Some(stmt) = parser.tokens.peek() {
+            stmts.push(parser.statement()?);
+        }
+        Ok(stmts)
+    }
+
+    // BNF: statement -> exprStmt | printStmt ;
+    fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Print => self.printStatement(),
+            _ => self.expressionStatement(),
+        }
+    }
+
+    fn printStatement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume 'print'
+        let value = self.expression()?;
+        if let Some(token) = self.tokens.peek() {
+            return match token.r#type {
+                token_type::TokenType::Semicolon => {
+                    self.tokens.next(); // consume semicolon
+                    Ok(stmt::Stmt::Print(Box::new(stmt::Print {
+                        expression: value,
+                    })))
+                }
+                _ => Err(ParseError {
+                    description: "Expected statement to end with a semicolon".to_string(),
+                }),
+            };
+        }
+        Err(ParseError {
+            description: "Expected statement to end with a semicolon".to_string(),
+        })
+    }
+
+    fn expressionStatement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        let value = self.expression()?;
+        match self.tokens.peek() {
+            Some(token) => {
+                match token.r#type {
+                    token_type::TokenType::Semicolon => {
+                        self.tokens.next(); // consume semicolon
+                        Ok(stmt::Stmt::Expr(Box::new(stmt::Expr { expression: value })))
+                    }
+                    _ => Err(ParseError {
+                        description: "Expected statement to end with a semicolon".to_string(),
+                    }),
+                }
+            }
+            None => Err(ParseError {
+                description: "Expected statement to end with a semicolon".to_string(),
+            }),
+        }
     }
 
     // BNF: expression -> equality ;
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
-        self.equality() 
+        self.equality()
     }
 
     // BNF: equality -> comparison ( ( "!=" | "==" ) comparison )* ;
@@ -39,17 +95,15 @@ impl Parser {
                     let operator = self.tokens.next().unwrap();
                     match self.comparison() {
                         Ok(right) => {
-                            expr = expr::Expr::Binary(Box::new(
-                                    expr::Binary {
-                                        left: expr,
-                                        operator,
-                                        right
-                                    }
-                                    ));
-                        },
+                            expr = expr::Expr::Binary(Box::new(expr::Binary {
+                                left: expr,
+                                operator,
+                                right,
+                            }));
+                        }
                         Err(e) => return Err(e),
                     }
-                },
+                }
                 _ => break,
             }
         }
@@ -64,21 +118,22 @@ impl Parser {
         };
         while let Some(token) = self.tokens.peek() {
             match token.r#type {
-                token_type::TokenType::Greater | token_type::TokenType::GreaterEqual | token_type::TokenType::Less | token_type::TokenType::LessEqual => {
+                token_type::TokenType::Greater
+                | token_type::TokenType::GreaterEqual
+                | token_type::TokenType::Less
+                | token_type::TokenType::LessEqual => {
                     let operator = self.tokens.next().unwrap();
                     match self.term() {
                         Ok(right) => {
-                            expr = expr::Expr::Binary(Box::new(
-                                    expr::Binary {
-                                        left: expr,
-                                        operator,
-                                        right,
-                                    }
-                                    ));
-                        },
+                            expr = expr::Expr::Binary(Box::new(expr::Binary {
+                                left: expr,
+                                operator,
+                                right,
+                            }));
+                        }
                         Err(e) => return Err(e),
                     }
-                },
+                }
                 _ => break,
             }
         }
@@ -88,7 +143,7 @@ impl Parser {
     fn term(&mut self) -> Result<expr::Expr, ParseError> {
         let mut expr = match self.factor() {
             Ok(expr) => expr,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         while let Some(token) = self.tokens.peek() {
             match token.r#type {
@@ -96,17 +151,15 @@ impl Parser {
                     let operator = self.tokens.next().unwrap();
                     match self.factor() {
                         Ok(right) => {
-                            expr = expr::Expr::Binary(Box::new(
-                                    expr::Binary {
-                                        left: expr,
-                                        operator,
-                                        right,
-                                    }
-                                    ));
-                        },
+                            expr = expr::Expr::Binary(Box::new(expr::Binary {
+                                left: expr,
+                                operator,
+                                right,
+                            }));
+                        }
                         Err(e) => return Err(e),
                     }
-                },
+                }
                 _ => break,
             }
         }
@@ -124,17 +177,15 @@ impl Parser {
                     let operator = self.tokens.next().unwrap();
                     match self.unary() {
                         Ok(right) => {
-                            expr = expr::Expr::Binary(Box::new(
-                                    expr::Binary {
-                                        left: expr,
-                                        operator,
-                                        right,
-                                    }
-                                    ));
-                        },
+                            expr = expr::Expr::Binary(Box::new(expr::Binary {
+                                left: expr,
+                                operator,
+                                right,
+                            }));
+                        }
                         Err(e) => return Err(e),
                     }
-                },
+                }
                 _ => break,
             }
         }
@@ -149,16 +200,15 @@ impl Parser {
                     let operator = self.tokens.next().unwrap();
                     match self.unary() {
                         Ok(right) => {
-                            return Ok(expr::Expr::Unary(Box::new(
-                                        expr::Unary {
-                                            operator,
-                                            right,
-                                        })));
-                        },
-                        Err(e) => return Err(e)
+                            return Ok(expr::Expr::Unary(Box::new(expr::Unary {
+                                operator,
+                                right,
+                            })));
+                        }
+                        Err(e) => return Err(e),
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
         self.primary()
@@ -168,42 +218,48 @@ impl Parser {
     fn primary(&mut self) -> Result<expr::Expr, ParseError> {
         let token = match self.tokens.next() {
             Some(token) => token,
-            None => panic!("Expected a token")
+            None => panic!("Expected a token"),
         };
         match token.r#type {
             token_type::TokenType::False => Ok(expr::Expr::Literal(expr::Literal::Bool(false))),
             token_type::TokenType::True => Ok(expr::Expr::Literal(expr::Literal::Bool(true))),
             token_type::TokenType::Nil => Ok(expr::Expr::Literal(expr::Literal::Nil)),
-            token_type::TokenType::Number => {
-                match token.literal.as_ref().unwrap() {
-                    token_type::Literal::Number(x) => Ok(expr::Expr::Literal(expr::Literal::Number(*x))),
-                    _ => Err(ParseError{description: "Number token did not contain a Number".to_string()})
+            token_type::TokenType::Number => match token.literal.as_ref().unwrap() {
+                token_type::Literal::Number(x) => {
+                    Ok(expr::Expr::Literal(expr::Literal::Number(*x)))
                 }
+                _ => Err(ParseError {
+                    description: "Number token did not contain a Number".to_string(),
+                }),
             },
-            token_type::TokenType::String => {
-                match token.literal.as_ref().unwrap() {
-                    token_type::Literal::String(x) => Ok(expr::Expr::Literal(expr::Literal::String(x.clone()))),
-                    _ => Err(ParseError{description: "String token did not contain a String".to_string()})
+            token_type::TokenType::String => match token.literal.as_ref().unwrap() {
+                token_type::Literal::String(x) => {
+                    Ok(expr::Expr::Literal(expr::Literal::String(x.clone())))
                 }
-            }
+                _ => Err(ParseError {
+                    description: "String token did not contain a String".to_string(),
+                }),
+            },
             token_type::TokenType::LeftParen => {
                 match self.expression() {
                     Ok(expr) => {
                         if self.tokens.peek().unwrap().r#type == token_type::TokenType::RightParen {
                             self.tokens.next(); // consume RightParen
-                            Ok(expr::Expr::Grouping(Box::new(
-                                        expr::Grouping {
-                                            expression: expr
-                                        })))
+                            Ok(expr::Expr::Grouping(Box::new(expr::Grouping {
+                                expression: expr,
+                            })))
                         } else {
-                            Err(ParseError{description: "Grouping did not end in right paren".to_string()})
+                            Err(ParseError {
+                                description: "Grouping did not end in right paren".to_string(),
+                            })
                         }
-                    },
+                    }
                     Err(e) => Err(e),
                 }
-
-            },
-            _ => Err(ParseError{description: format!("Unexpected token: {}", token)})
+            }
+            _ => Err(ParseError {
+                description: format!("Unexpected token: {}", token),
+            }),
         }
     }
 }
