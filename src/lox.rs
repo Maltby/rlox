@@ -1,25 +1,24 @@
-use clap::{App,Arg};
+use crate::interpreter::interpret_stmts;
+use crate::parser::*;
+use crate::scanner::Scanner;
+use clap::{App, Arg};
 use std::fs;
 use std::io;
 use std::process;
-use crate::scanner::Scanner;
-use crate::parser::*;
-use crate::interpreter::interpret;
 
 pub struct Lox {
-    pub had_error: bool
+    pub had_error: bool,
 }
 impl Lox {
     pub fn main(&mut self) {
         let args = App::new("rlox")
-            .arg(Arg::with_name("filepath")
-                 .takes_value(true))
+            .arg(Arg::with_name("filepath").takes_value(true))
             .get_matches();
 
         match args.value_of("filepath") {
             Some(filepath) => {
                 self.run_file(filepath);
-            },
+            }
             None => {
                 self.run_prompt();
             }
@@ -27,8 +26,10 @@ impl Lox {
     }
 
     fn run_file(&mut self, filepath: &str) {
-        let contents = fs::read_to_string(filepath)
-            .expect(&format!("Failed to read from given filepath: {:?}", filepath));
+        let contents = fs::read_to_string(filepath).expect(&format!(
+            "Failed to read from given filepath: {:?}",
+            filepath
+        ));
         Lox::run(self, contents);
         if self.had_error {
             process::exit(65);
@@ -55,18 +56,19 @@ impl Lox {
             }
         };
         match Parser::parse(tokens) {
-            Ok(expr) => {
-                match interpret(expr) {
-                    Ok(value) => println!("{}", value),
-                    Err(e) => println!("{}", e)
-                }
-            }
+            Ok(stmts) => match interpret_stmts(stmts) {
+                Ok(_) => {}
+                Err(e) => println!("{}", e),
+            },
             Err(e) => println!("{}", e),
         }
     }
 
     fn report(error: Error, _where: &str) {
-        println!("[line {0}] Error{1}: {2}", error.line, _where, error.message);
+        println!(
+            "[line {0}] Error{1}: {2}",
+            error.line, _where, error.message
+        );
     }
 }
 

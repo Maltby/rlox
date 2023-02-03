@@ -22,22 +22,27 @@ impl Parser {
         let mut parser = Parser {
             tokens: tokens.into_iter().peekable(),
         };
-        let stmts = vec![];
-        while let Some(stmt) = parser.tokens.peek() {
-            stmts.push(parser.statement()?);
+        let mut stmts = vec![];
+        while let Some(token) = parser.tokens.peek() {
+            match token.r#type {
+                token_type::TokenType::Eof => return Ok(stmts),
+                _ => stmts.push(parser.statement()?),
+            }
         }
-        Ok(stmts)
+        Err(ParseError {
+            description: "No Eof found".to_string(),
+        })
     }
 
     // BNF: statement -> exprStmt | printStmt ;
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         match self.tokens.peek().unwrap().r#type {
-            token_type::TokenType::Print => self.printStatement(),
-            _ => self.expressionStatement(),
+            token_type::TokenType::Print => self.print_statement(),
+            _ => self.expression_statement(),
         }
     }
 
-    fn printStatement(&mut self) -> Result<stmt::Stmt, ParseError> {
+    fn print_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         self.tokens.next(); // consume 'print'
         let value = self.expression()?;
         if let Some(token) = self.tokens.peek() {
@@ -58,7 +63,7 @@ impl Parser {
         })
     }
 
-    fn expressionStatement(&mut self) -> Result<stmt::Stmt, ParseError> {
+    fn expression_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         let value = self.expression()?;
         match self.tokens.peek() {
             Some(token) => {
@@ -258,7 +263,7 @@ impl Parser {
                 }
             }
             _ => Err(ParseError {
-                description: format!("Unexpected token: {}", token),
+                description: format!("Unexpected token: {} ({})", token, token.r#type),
             }),
         }
     }
