@@ -1,17 +1,26 @@
-use std::fmt; 
+use std::fmt;
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Single and double char tokens
-    LeftParen, RightParen,
-    LeftBrace, RightBrace,
-    Comma, Dot,
-    Minus, Plus,
-    Semicolon, Slash,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
     Star,
-    Bang, BangEqual,
-    Equal, EqualEqual,
-    Greater, GreaterEqual,
-    Less, LessEqual,
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
     // Literals
     Identifier,
     String,

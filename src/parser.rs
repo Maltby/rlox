@@ -26,12 +26,43 @@ impl Parser {
         while let Some(token) = parser.tokens.peek() {
             match token.r#type {
                 token_type::TokenType::Eof => return Ok(stmts),
-                _ => stmts.push(parser.statement()?),
+                _ => stmts.push(parser.declaration()?),
             }
         }
         Err(ParseError {
             description: "No Eof found".to_string(),
         })
+    }
+
+    fn declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
+        match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Var => self.var_declaration(),
+            _ => self.statement(),
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume 'var'
+        let name = self.tokens.next().unwrap();
+        let expression = match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Equal => {
+                self.tokens.next(); // consume '='
+                Some(self.expression()?)
+            }
+            _ => None,
+        };
+        match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Semicolon => {
+                self.tokens.next();
+            }
+            _ => {
+                return Err(ParseError {
+                    description: "Expected variable declaration to end with a semicolon"
+                        .to_string(),
+                })
+            }
+        }
+        Ok(stmt::Stmt::Var(Box::new(stmt::Var { name, expression })))
     }
 
     // BNF: statement -> exprStmt | printStmt ;
@@ -245,6 +276,11 @@ impl Parser {
                     description: "String token did not contain a String".to_string(),
                 }),
             },
+            token_type::TokenType::Identifier => {
+                Ok(expr::Expr::Variable(Box::new(expr::Variable {
+                    name: token,
+                })))
+            }
             token_type::TokenType::LeftParen => {
                 match self.expression() {
                     Ok(expr) => {

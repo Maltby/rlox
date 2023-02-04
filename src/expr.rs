@@ -6,14 +6,26 @@ pub enum Expr {
     Grouping(Box<Grouping>),
     Literal(Literal),
     Unary(Box<Unary>),
+    Variable(Box<Variable>),
 }
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Expr::Binary(x)   => {write!(f, "{}", *x)},
-            Expr::Grouping(x) => {write!(f, "{}", *x)},
-            Expr::Literal(x)  => {write!(f, "{}", x)},
-            Expr::Unary(x)    => {write!(f, "{}", *x)},
+            Expr::Binary(x) => {
+                write!(f, "{}", *x)
+            }
+            Expr::Grouping(x) => {
+                write!(f, "{}", *x)
+            }
+            Expr::Literal(x) => {
+                write!(f, "{}", x)
+            }
+            Expr::Unary(x) => {
+                write!(f, "{}", *x)
+            }
+            Expr::Variable(x) => {
+                write!(f, "{}", *x)
+            }
         }
     }
 }
@@ -57,10 +69,27 @@ pub enum Literal {
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Literal::Number(x) => {write!(f, "{}", x)},
-            Literal::String(x) => {write!(f, "{}", x)},
-            Literal::Bool(x)   => {write!(f, "{}", x)},
-            Literal::Nil       => {write!(f, "Nil")},
+            Literal::Number(x) => {
+                write!(f, "{}", x)
+            }
+            Literal::String(x) => {
+                write!(f, "{}", x)
+            }
+            Literal::Bool(x) => {
+                write!(f, "{}", x)
+            }
+            Literal::Nil => {
+                write!(f, "Nil")
+            }
         }
+    }
+}
+
+pub struct Variable {
+    pub name: Token,
+}
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
