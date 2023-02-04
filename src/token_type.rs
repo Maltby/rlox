@@ -1,5 +1,5 @@
 use std::fmt;
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Single and double char tokens
     LeftParen,
@@ -51,7 +51,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     Number(f64),
     String(String),
@@ -65,6 +65,7 @@ impl fmt::Display for Literal {
     }
 }
 
+#[derive(Clone)]
 pub struct Token {
     pub r#type: TokenType,
     pub lexeme: String,

@@ -1,4 +1,4 @@
-use crate::interpreter::interpret_stmts;
+use crate::interpreter::Interpreter;
 use crate::parser::*;
 use crate::scanner::Scanner;
 use clap::{App, Arg};
@@ -7,6 +7,7 @@ use std::io;
 use std::process;
 
 pub struct Lox {
+    pub interpreter: Interpreter,
     pub had_error: bool,
 }
 impl Lox {
@@ -56,7 +57,7 @@ impl Lox {
             }
         };
         match Parser::parse(tokens) {
-            Ok(stmts) => match interpret_stmts(stmts) {
+            Ok(stmts) => match self.interpreter.interpret_stmts(stmts) {
                 Ok(_) => {}
                 Err(e) => println!("{}", e),
             },

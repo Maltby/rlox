@@ -5,7 +5,7 @@ use std::{error::Error, fmt};
 
 #[derive(Debug)]
 pub struct RuntimeError {
-    description: String,
+    pub description: String,
 }
 impl Error for RuntimeError {}
 impl fmt::Display for RuntimeError {
@@ -15,16 +15,19 @@ impl fmt::Display for RuntimeError {
 }
 
 pub struct Environment {
-    values: HashMap<String, Option<expr::Literal>>,
+    pub values: HashMap<String, expr::Literal>,
 }
 impl Environment {
     pub fn define(&mut self, name: String, value: Option<expr::Literal>) {
-        self.values.insert(name, value);
+        match value {
+            Some(value) => self.values.insert(name, value),
+            None => self.values.insert(name, expr::Literal::Nil),
+        };
     }
 
-    pub fn get(&self, name: token_type::Token) -> Result<&Option<expr::Literal>, RuntimeError> {
+    pub fn get(&self, name: token_type::Token) -> Result<expr::Literal, RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
-            return Ok(self.values.get(&name.lexeme).unwrap());
+            return Ok(self.values.get(&name.lexeme).unwrap().clone());
         }
         Err(RuntimeError {
             description: format!("Undefined variable {}", name.lexeme),

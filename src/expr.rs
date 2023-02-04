@@ -1,6 +1,7 @@
 use crate::token_type::Token;
 use std::fmt;
 
+#[derive(Clone)]
 pub enum Expr {
     Binary(Box<Binary>),
     Grouping(Box<Grouping>),
@@ -30,6 +31,7 @@ impl fmt::Display for Expr {
     }
 }
 
+#[derive(Clone)]
 pub struct Binary {
     pub left: Expr,
     pub operator: Token,
@@ -41,6 +43,7 @@ impl fmt::Display for Binary {
     }
 }
 
+#[derive(Clone)]
 pub struct Grouping {
     pub expression: Expr,
 }
@@ -50,6 +53,7 @@ impl fmt::Display for Grouping {
     }
 }
 
+#[derive(Clone)]
 pub struct Unary {
     pub operator: Token,
     pub right: Expr,
@@ -60,6 +64,7 @@ impl fmt::Display for Unary {
     }
 }
 
+#[derive(Clone)]
 pub enum Literal {
     Number(f64),
     String(String),
@@ -85,6 +90,7 @@ impl fmt::Display for Literal {
     }
 }
 
+#[derive(Clone)]
 pub struct Variable {
     pub name: Token,
 }

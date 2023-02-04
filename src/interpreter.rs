@@ -4,8 +4,8 @@ use crate::stmt;
 use crate::token_type::TokenType;
 use std::{error::Error, fmt};
 
-struct Interpreter {
-    environment: environment::Environment,
+pub struct Interpreter {
+    pub environment: environment::Environment,
 }
 impl Interpreter {
     pub fn interpret_stmts(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
@@ -131,12 +131,9 @@ impl Interpreter {
                 }
             }
             expr::Expr::Variable(variable) => match self.environment.get(variable.name) {
-                Ok(maybe_literal) => match maybe_literal {
-                    Some(x) => Ok(*x),
-                    None => Ok(expr::Literal::Nil),
-                },
-                Err(_) => Err(InterpreterError {
-                    description: format!("Unrecognized variable: {}", variable.name),
+                Ok(literal) => Ok(literal),
+                Err(e) => Err(InterpreterError {
+                    description: e.description,
                 }),
             },
         }
