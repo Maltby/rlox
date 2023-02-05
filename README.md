@@ -7,6 +7,8 @@ declaration -> varDecl | statement ;
 varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;
 statement   -> exprStmt | printStmt ;
 exprStmt    -> expression ";" ;
+expression  -> assignment ;
+assignment  -> IDENTIFIER "=" assignment | equality ;
 printStmt   -> "print" expression ";" ;
 equality    -> comparison ( ( "!=" | "==" ) comparison )* ;
 comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;

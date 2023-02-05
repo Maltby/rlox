@@ -8,6 +8,7 @@ pub enum Expr {
     Literal(Literal),
     Unary(Box<Unary>),
     Variable(Box<Variable>),
+    Assign(Box<Assign>),
 }
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -25,6 +26,9 @@ impl fmt::Display for Expr {
                 write!(f, "{}", *x)
             }
             Expr::Variable(x) => {
+                write!(f, "{}", *x)
+            }
+            Expr::Assign(x) => {
                 write!(f, "{}", *x)
             }
         }
@@ -97,5 +101,16 @@ pub struct Variable {
 impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Clone)]
+pub struct Assign {
+    pub name: Token,
+    pub value: Expr,
+}
+impl fmt::Display for Assign {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} = {}", self.name, self.value)
     }
 }

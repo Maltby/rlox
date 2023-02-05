@@ -136,6 +136,15 @@ impl Interpreter {
                     description: e.description,
                 }),
             },
+            expr::Expr::Assign(assign) => {
+                let value = self.expr(assign.value)?;
+                match self.environment.assign(assign.name, value.clone()) {
+                    Ok(_) => Ok(value),
+                    Err(e) => Err(InterpreterError {
+                        description: e.description,
+                    }),
+                }
+            }
         }
     }
 

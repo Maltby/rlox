@@ -25,6 +25,20 @@ impl Environment {
         };
     }
 
+    pub fn assign(
+        &mut self,
+        name: token_type::Token,
+        value: expr::Literal,
+    ) -> Result<(), RuntimeError> {
+        if self.values.contains_key(&name.lexeme) {
+            self.values.insert(name.lexeme, value);
+            return Ok(());
+        }
+        Err(RuntimeError {
+            description: format!("Undefined variable {}", name.lexeme),
+        })
+    }
+
     pub fn get(&self, name: token_type::Token) -> Result<expr::Literal, RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             return Ok(self.values.get(&name.lexeme).unwrap().clone());

@@ -116,7 +116,34 @@ impl Parser {
 
     // BNF: expression -> equality ;
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<expr::Expr, ParseError> {
+        let expr = self.equality()?;
+        if let Some(token) = self.tokens.peek() {
+            match token.r#type {
+                token_type::TokenType::Equal => {
+                    self.tokens.next(); // consume '='
+                    let value = self.assignment()?;
+                    match expr {
+                        expr::Expr::Variable(variable) => {
+                            return Ok(expr::Expr::Assign(Box::new(expr::Assign {
+                                name: variable.name,
+                                value,
+                            })))
+                        }
+                        _ => {
+                            return Err(ParseError {
+                                description: "Invalid assignment target".to_string(),
+                            })
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(expr)
     }
 
     // BNF: equality -> comparison ( ( "!=" | "==" ) comparison )* ;
