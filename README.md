@@ -5,11 +5,12 @@ Backus-Naur Form:
 program     -> declaration* EOF ;
 declaration -> varDecl | statement ;
 varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;
-statement   -> exprStmt | printStmt ;
+statement   -> exprStmt | printStmt | block ;
 exprStmt    -> expression ";" ;
 expression  -> assignment ;
 assignment  -> IDENTIFIER "=" assignment | equality ;
 printStmt   -> "print" expression ";" ;
+block       -> "{" declaration* "}" ;
 equality    -> comparison ( ( "!=" | "==" ) comparison )* ;
 comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term        -> factor ( ( "-" | "+" ) factor )* ;

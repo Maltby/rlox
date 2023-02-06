@@ -4,7 +4,8 @@ use crate::token_type;
 pub enum Stmt {
     Expr(Box<Expr>),
     Print(Box<Print>),
-    Var(Box<Var>),
+    VarDec(Box<VarDec>),
+    Block(Box<Block>),
 }
 
 pub struct Expr {
@@ -15,7 +16,11 @@ pub struct Print {
     pub expression: expr::Expr,
 }
 
-pub struct Var {
+pub struct VarDec {
     pub name: token_type::Token,
     pub expression: Option<expr::Expr>,
+}
+
+pub struct Block {
+    pub statements: Vec<Stmt>,
 }

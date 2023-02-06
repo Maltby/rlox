@@ -2,10 +2,10 @@ use crate::environment;
 use crate::expr;
 use crate::stmt;
 use crate::token_type::TokenType;
-use std::{error::Error, fmt};
+use std::{cell::RefCell, collections::HashMap, error::Error, fmt, rc::Rc};
 
 pub struct Interpreter {
-    pub environment: environment::Environment,
+    pub environment: Rc<RefCell<environment::Environment>>,
 }
 impl Interpreter {
     pub fn interpret_stmts(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
@@ -15,18 +15,32 @@ impl Interpreter {
                     self.expr(expr_stmt.expression)?;
                 }
                 stmt::Stmt::Print(print_stmt) => self.print_stmt(print_stmt.expression)?,
-                stmt::Stmt::Var(var_stmt) => self.var_stmt(*var_stmt)?,
+                stmt::Stmt::VarDec(var_stmt) => self.var_stmt(*var_stmt)?,
+                stmt::Stmt::Block(block_stmt) => self.block_stmt(block_stmt.statements)?,
             };
         }
         Ok(())
     }
 
-    pub fn var_stmt(&mut self, stmt: stmt::Var) -> Result<(), InterpreterError> {
+    pub fn block_stmt(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
+        let tmp = self.environment.clone();
+        self.environment = Rc::new(RefCell::new(environment::Environment {
+            enclosing: Some(self.environment.clone()),
+            values: HashMap::new(),
+        }));
+        let res = self.interpret_stmts(stmts)?;
+        self.environment = tmp;
+        Ok(())
+    }
+
+    pub fn var_stmt(&mut self, stmt: stmt::VarDec) -> Result<(), InterpreterError> {
         let value = match stmt.expression {
             Some(expr) => Some(self.expr(expr)?),
             None => None,
         };
-        self.environment.define(stmt.name.lexeme, value);
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme, value);
         Ok(())
     }
 
@@ -130,15 +144,21 @@ impl Interpreter {
                   _ => Err(InterpreterError{description:"Unrecognized binary operator".to_string()})
                 }
             }
-            expr::Expr::Variable(variable) => match self.environment.get(variable.name) {
-                Ok(literal) => Ok(literal),
-                Err(e) => Err(InterpreterError {
-                    description: e.description,
-                }),
-            },
+            expr::Expr::Variable(variable) => {
+                match self.environment.borrow_mut().get(variable.name) {
+                    Ok(literal) => Ok(literal),
+                    Err(e) => Err(InterpreterError {
+                        description: e.description,
+                    }),
+                }
+            }
             expr::Expr::Assign(assign) => {
                 let value = self.expr(assign.value)?;
-                match self.environment.assign(assign.name, value.clone()) {
+                match self
+                    .environment
+                    .borrow_mut()
+                    .assign(assign.name, value.clone())
+                {
                     Ok(_) => Ok(value),
                     Err(e) => Err(InterpreterError {
                         description: e.description,

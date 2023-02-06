@@ -62,13 +62,17 @@ impl Parser {
                 })
             }
         }
-        Ok(stmt::Stmt::Var(Box::new(stmt::Var { name, expression })))
+        Ok(stmt::Stmt::VarDec(Box::new(stmt::VarDec {
+            name,
+            expression,
+        })))
     }
 
     // BNF: statement -> exprStmt | printStmt ;
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         match self.tokens.peek().unwrap().r#type {
             token_type::TokenType::Print => self.print_statement(),
+            token_type::TokenType::LeftBrace => self.block_statement(),
             _ => self.expression_statement(),
         }
     }
@@ -92,6 +96,28 @@ impl Parser {
         Err(ParseError {
             description: "Expected statement to end with a semicolon".to_string(),
         })
+    }
+
+    fn block_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume '{'
+        let mut statements = vec![];
+        while let Some(token) = self.tokens.peek() {
+            match token.r#type {
+                token_type::TokenType::RightBrace => {
+                    self.tokens.next(); // consume '}'
+                    return Ok(stmt::Stmt::Block(Box::new(stmt::Block { statements })));
+                }
+                token_type::TokenType::Eof => {
+                    return Err(ParseError {
+                        description: "Expected '}' after block".to_string(),
+                    })
+                }
+                _ => statements.push(self.declaration()?),
+            }
+        }
+        return Err(ParseError {
+            description: "Expected '}' after block".to_string(),
+        });
     }
 
     fn expression_statement(&mut self) -> Result<stmt::Stmt, ParseError> {

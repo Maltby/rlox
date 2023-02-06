@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 mod environment;
 mod expr;
 mod interpreter;
@@ -12,9 +12,10 @@ fn main() {
     let mut lox = lox::Lox {
         had_error: false,
         interpreter: interpreter::Interpreter {
-            environment: environment::Environment {
+            environment: Rc::new(RefCell::new(environment::Environment {
                 values: HashMap::new(),
-            },
+                enclosing: None,
+            })),
         },
     };
     lox.main();
