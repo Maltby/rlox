@@ -57,7 +57,7 @@ impl Lox {
             }
         };
         match Parser::parse(tokens) {
-            Ok(stmts) => match self.interpreter.interpret_stmts(stmts) {
+            Ok(stmts) => match self.interpreter.interpret_stmts(&stmts) {
                 Ok(_) => {}
                 Err(e) => println!("{}", e),
             },

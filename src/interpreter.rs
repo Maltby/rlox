@@ -8,36 +8,44 @@ pub struct Interpreter {
     pub environment: Rc<RefCell<environment::Environment>>,
 }
 impl Interpreter {
-    pub fn interpret_stmts(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
+    pub fn interpret_stmts(&mut self, stmts: &Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
         for stmt in stmts {
-            self.stmt(stmt)?;
+            self.stmt(&stmt)?;
         }
         Ok(())
     }
 
-    pub fn stmt(&mut self, stmt: stmt::Stmt) -> Result<(), InterpreterError> {
+    pub fn stmt(&mut self, stmt: &stmt::Stmt) -> Result<(), InterpreterError> {
         match stmt {
             stmt::Stmt::Expr(expr_stmt) => {
-                self.expr(expr_stmt.expression)?;
+                self.expr(&expr_stmt.expression)?;
             }
-            stmt::Stmt::Print(print_stmt) => self.print_stmt(print_stmt.expression)?,
-            stmt::Stmt::VarDec(var_stmt) => self.var_stmt(*var_stmt)?,
-            stmt::Stmt::Block(block_stmt) => self.block_stmt(block_stmt.statements)?,
-            stmt::Stmt::If(if_stmt) => self.if_stmt(*if_stmt)?,
+            stmt::Stmt::Print(print_stmt) => self.print_stmt(&print_stmt.expression)?,
+            stmt::Stmt::VarDec(var_stmt) => self.var_stmt(var_stmt)?,
+            stmt::Stmt::Block(block_stmt) => self.block_stmt(&block_stmt.statements)?,
+            stmt::Stmt::If(if_stmt) => self.if_stmt(if_stmt)?,
+            stmt::Stmt::While(while_stmt) => self.while_stmt(while_stmt)?,
         };
         Ok(())
     }
 
-    pub fn if_stmt(&mut self, stmt: stmt::If) -> Result<(), InterpreterError> {
-        if Self::is_truthy(&self.expr(stmt.condition)?) {
-            return self.stmt(stmt.then_branch);
-        } else if stmt.else_branch.is_some() {
-            return self.stmt(stmt.else_branch.unwrap());
+    pub fn while_stmt(&mut self, stmt: &stmt::While) -> Result<(), InterpreterError> {
+        while Self::is_truthy(&self.expr(&stmt.condition)?) {
+            self.stmt(&stmt.body)?;
         }
         Ok(())
     }
 
-    pub fn block_stmt(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
+    pub fn if_stmt(&mut self, stmt: &stmt::If) -> Result<(), InterpreterError> {
+        if Self::is_truthy(&self.expr(&stmt.condition)?) {
+            return self.stmt(&stmt.then_branch);
+        } else if stmt.else_branch.is_some() {
+            return self.stmt(&stmt.else_branch.as_ref().unwrap());
+        }
+        Ok(())
+    }
+
+    pub fn block_stmt(&mut self, stmts: &Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
         let tmp = self.environment.clone();
         self.environment = Rc::new(RefCell::new(environment::Environment {
             enclosing: Some(self.environment.clone()),
@@ -48,29 +56,29 @@ impl Interpreter {
         Ok(())
     }
 
-    pub fn var_stmt(&mut self, stmt: stmt::VarDec) -> Result<(), InterpreterError> {
-        let value = match stmt.expression {
-            Some(expr) => Some(self.expr(expr)?),
+    pub fn var_stmt(&mut self, stmt: &stmt::VarDec) -> Result<(), InterpreterError> {
+        let value = match &stmt.expression {
+            Some(expr) => Some(self.expr(&expr)?),
             None => None,
         };
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme, value);
+            .define(stmt.name.lexeme.clone(), value);
         Ok(())
     }
 
-    pub fn print_stmt(&mut self, expr: expr::Expr) -> Result<(), InterpreterError> {
+    pub fn print_stmt(&mut self, expr: &expr::Expr) -> Result<(), InterpreterError> {
         let value = self.expr(expr)?;
         println!("{}", value);
         Ok(())
     }
 
-    pub fn expr(&mut self, expr: expr::Expr) -> Result<expr::Literal, InterpreterError> {
+    pub fn expr(&mut self, expr: &expr::Expr) -> Result<expr::Literal, InterpreterError> {
         match expr {
-            expr::Expr::Literal(literal) => Ok(literal),
-            expr::Expr::Grouping(grouping) => self.expr(grouping.expression),
+            expr::Expr::Literal(literal) => Ok(literal.clone()),
+            expr::Expr::Grouping(grouping) => self.expr(&grouping.expression),
             expr::Expr::Unary(unary) => {
-                let right = self.expr(unary.right)?;
+                let right = self.expr(&unary.right)?;
                 match unary.operator.r#type {
                     TokenType::Minus => match right {
                         expr::Literal::Number(x) => Ok(expr::Literal::Number(-x)),
@@ -85,8 +93,8 @@ impl Interpreter {
                 }
             }
             expr::Expr::Binary(binary) => {
-                let left = self.expr(binary.left)?;
-                let right = self.expr(binary.right)?;
+                let left = self.expr(&binary.left)?;
+                let right = self.expr(&binary.right)?;
                 let types = (left, right);
                 match binary.operator.r#type {
                   TokenType::Minus => {
@@ -160,7 +168,7 @@ impl Interpreter {
                 }
             }
             expr::Expr::Variable(variable) => {
-                match self.environment.borrow_mut().get(variable.name) {
+                match self.environment.borrow_mut().get(variable.name.clone()) {
                     Ok(literal) => Ok(literal),
                     Err(e) => Err(InterpreterError {
                         description: e.description,
@@ -168,11 +176,11 @@ impl Interpreter {
                 }
             }
             expr::Expr::Assign(assign) => {
-                let value = self.expr(assign.value)?;
+                let value = self.expr(&assign.value)?;
                 match self
                     .environment
                     .borrow_mut()
-                    .assign(assign.name, value.clone())
+                    .assign(assign.name.clone(), value.clone())
                 {
                     Ok(_) => Ok(value),
                     Err(e) => Err(InterpreterError {
@@ -181,7 +189,7 @@ impl Interpreter {
                 }
             }
             expr::Expr::Logical(logical) => {
-                let left = self.expr(logical.left)?;
+                let left = self.expr(&logical.left)?;
                 match logical.operator.r#type {
                     TokenType::And => {
                         if !Self::is_truthy(&left) {
@@ -202,7 +210,7 @@ impl Interpreter {
                         })
                     }
                 }
-                self.expr(logical.right)
+                self.expr(&logical.right)
             }
         }
     }

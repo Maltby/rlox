@@ -74,7 +74,46 @@ impl Parser {
             token_type::TokenType::Print => self.print_statement(),
             token_type::TokenType::LeftBrace => self.block_statement(),
             token_type::TokenType::If => self.if_statement(),
+            token_type::TokenType::While => self.while_statement(),
             _ => self.expression_statement(),
+        }
+    }
+
+    fn while_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume 'while'
+        self.expect_token(
+            token_type::TokenType::LeftParen,
+            "Expected '(' after 'while'".to_string(),
+        )?;
+        let condition = self.expression()?;
+        self.expect_token(
+            token_type::TokenType::RightParen,
+            "Expected ')' after while condition".to_string(),
+        )?;
+        let body = self.statement()?;
+        Ok(stmt::Stmt::While(Box::new(stmt::While { condition, body })))
+    }
+
+    fn expect_token(
+        &mut self,
+        expected: token_type::TokenType,
+        err_msg: String,
+    ) -> Result<(), ParseError> {
+        match self.tokens.peek() {
+            Some(token) => {
+                match &token.r#type {
+                    x if *x == expected => {
+                        self.tokens.next(); // consume expected token
+                        Ok(())
+                    }
+                    _ => Err(ParseError {
+                        description: err_msg,
+                    }),
+                }
+            }
+            None => Err(ParseError {
+                description: format!("Expected {} but found nothing", expected),
+            }),
         }
     }
 
