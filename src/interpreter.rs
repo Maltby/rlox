@@ -10,14 +10,29 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn interpret_stmts(&mut self, stmts: Vec<stmt::Stmt>) -> Result<(), InterpreterError> {
         for stmt in stmts {
-            match stmt {
-                stmt::Stmt::Expr(expr_stmt) => {
-                    self.expr(expr_stmt.expression)?;
-                }
-                stmt::Stmt::Print(print_stmt) => self.print_stmt(print_stmt.expression)?,
-                stmt::Stmt::VarDec(var_stmt) => self.var_stmt(*var_stmt)?,
-                stmt::Stmt::Block(block_stmt) => self.block_stmt(block_stmt.statements)?,
-            };
+            self.stmt(stmt)?;
+        }
+        Ok(())
+    }
+
+    pub fn stmt(&mut self, stmt: stmt::Stmt) -> Result<(), InterpreterError> {
+        match stmt {
+            stmt::Stmt::Expr(expr_stmt) => {
+                self.expr(expr_stmt.expression)?;
+            }
+            stmt::Stmt::Print(print_stmt) => self.print_stmt(print_stmt.expression)?,
+            stmt::Stmt::VarDec(var_stmt) => self.var_stmt(*var_stmt)?,
+            stmt::Stmt::Block(block_stmt) => self.block_stmt(block_stmt.statements)?,
+            stmt::Stmt::If(if_stmt) => self.if_stmt(*if_stmt)?,
+        };
+        Ok(())
+    }
+
+    pub fn if_stmt(&mut self, stmt: stmt::If) -> Result<(), InterpreterError> {
+        if Self::is_truthy(self.expr(stmt.condition)?) {
+            return self.stmt(stmt.then_branch);
+        } else if stmt.else_branch.is_some() {
+            return self.stmt(stmt.else_branch.unwrap());
         }
         Ok(())
     }
@@ -28,7 +43,7 @@ impl Interpreter {
             enclosing: Some(self.environment.clone()),
             values: HashMap::new(),
         }));
-        let res = self.interpret_stmts(stmts)?;
+        self.interpret_stmts(stmts)?;
         self.environment = tmp;
         Ok(())
     }

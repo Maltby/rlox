@@ -5,8 +5,9 @@ Backus-Naur Form:
 program     -> declaration* EOF ;
 declaration -> varDecl | statement ;
 varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;
-statement   -> exprStmt | printStmt | block ;
-exprStmt    -> expression ";" ;
+statement   -> exprStmt | printStmt | block | ifStmt ;
+ifStmt      -> "if" "(" expression ")" statement 
+               ( "else" statement )? ;
 expression  -> assignment ;
 assignment  -> IDENTIFIER "=" assignment | equality ;
 printStmt   -> "print" expression ";" ;

@@ -73,8 +73,47 @@ impl Parser {
         match self.tokens.peek().unwrap().r#type {
             token_type::TokenType::Print => self.print_statement(),
             token_type::TokenType::LeftBrace => self.block_statement(),
+            token_type::TokenType::If => self.if_statement(),
             _ => self.expression_statement(),
         }
+    }
+
+    // TODO: refactor
+    fn if_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume 'if'
+        let condition;
+        match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::LeftParen => {
+                self.tokens.next(); // consume '('
+                condition = self.expression()?;
+            }
+            _ => {
+                return Err(ParseError {
+                    description: "Expected '(' after 'if'".to_string(),
+                })
+            }
+        }
+        match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::RightParen => {
+                self.tokens.next(); // consume ')'
+            }
+            _ => {
+                return Err(ParseError {
+                    description: "Expected ')' after if condition".to_string(),
+                })
+            }
+        }
+        let then_branch = self.statement()?;
+        let mut else_branch = None;
+        if let token_type::TokenType::Else = self.tokens.peek().unwrap().r#type {
+            self.tokens.next(); // consume 'else'
+            else_branch = Some(self.statement()?);
+        };
+        Ok(stmt::Stmt::If(Box::new(stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        })))
     }
 
     fn print_statement(&mut self) -> Result<stmt::Stmt, ParseError> {

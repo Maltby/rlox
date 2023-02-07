@@ -1,4 +1,5 @@
 use crate::expr;
+use crate::stmt;
 use crate::token_type;
 
 pub enum Stmt {
@@ -6,6 +7,7 @@ pub enum Stmt {
     Print(Box<Print>),
     VarDec(Box<VarDec>),
     Block(Box<Block>),
+    If(Box<If>),
 }
 
 pub struct Expr {
@@ -23,4 +25,10 @@ pub struct VarDec {
 
 pub struct Block {
     pub statements: Vec<Stmt>,
+}
+
+pub struct If {
+    pub condition: expr::Expr,
+    pub then_branch: stmt::Stmt,
+    pub else_branch: Option<stmt::Stmt>,
 }
