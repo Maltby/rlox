@@ -9,7 +9,9 @@ statement   -> exprStmt | printStmt | block | ifStmt ;
 ifStmt      -> "if" "(" expression ")" statement 
                ( "else" statement )? ;
 expression  -> assignment ;
-assignment  -> IDENTIFIER "=" assignment | equality ;
+assignment  -> IDENTIFIER "=" assignment | logicOr ;
+logicOr     -> logicAnd ( "or" logicAnd )* ;
+logicAnd    -> equality ( "and" equality )* ;
 printStmt   -> "print" expression ";" ;
 block       -> "{" declaration* "}" ;
 equality    -> comparison ( ( "!=" | "==" ) comparison )* ;

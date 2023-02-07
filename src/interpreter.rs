@@ -29,7 +29,7 @@ impl Interpreter {
     }
 
     pub fn if_stmt(&mut self, stmt: stmt::If) -> Result<(), InterpreterError> {
-        if Self::is_truthy(self.expr(stmt.condition)?) {
+        if Self::is_truthy(&self.expr(stmt.condition)?) {
             return self.stmt(stmt.then_branch);
         } else if stmt.else_branch.is_some() {
             return self.stmt(stmt.else_branch.unwrap());
@@ -78,7 +78,7 @@ impl Interpreter {
                             description: "Can only negate a Number".to_string(),
                         }),
                     },
-                    TokenType::Bang => Ok(expr::Literal::Bool(Self::is_truthy(right))),
+                    TokenType::Bang => Ok(expr::Literal::Bool(Self::is_truthy(&right))),
                     _ => Err(InterpreterError {
                         description: "Unrecognized unary operator".to_string(),
                     }),
@@ -180,13 +180,37 @@ impl Interpreter {
                     }),
                 }
             }
+            expr::Expr::Logical(logical) => {
+                let left = self.expr(logical.left)?;
+                match logical.operator.r#type {
+                    TokenType::And => {
+                        if !Self::is_truthy(&left) {
+                            return Ok(left);
+                        }
+                    }
+                    TokenType::Or => {
+                        if Self::is_truthy(&left) {
+                            return Ok(left);
+                        }
+                    }
+                    _ => {
+                        return Err(InterpreterError {
+                            description: format!(
+                                "Logical expression created with an unsupported operator: {}",
+                                logical.operator.lexeme
+                            ),
+                        })
+                    }
+                }
+                self.expr(logical.right)
+            }
         }
     }
 
-    fn is_truthy(literal: expr::Literal) -> bool {
+    fn is_truthy(literal: &expr::Literal) -> bool {
         match literal {
             expr::Literal::Nil => false,
-            expr::Literal::Bool(b) => b,
+            expr::Literal::Bool(b) => *b,
             _ => true,
         }
     }

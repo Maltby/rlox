@@ -9,29 +9,11 @@ pub enum Expr {
     Unary(Box<Unary>),
     Variable(Box<Variable>),
     Assign(Box<Assign>),
+    Logical(Box<Logical>),
 }
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Expr::Binary(x) => {
-                write!(f, "{}", *x)
-            }
-            Expr::Grouping(x) => {
-                write!(f, "{}", *x)
-            }
-            Expr::Literal(x) => {
-                write!(f, "{}", x)
-            }
-            Expr::Unary(x) => {
-                write!(f, "{}", *x)
-            }
-            Expr::Variable(x) => {
-                write!(f, "{}", *x)
-            }
-            Expr::Assign(x) => {
-                write!(f, "{}", *x)
-            }
-        }
+        write!(f, "{}", *self)
     }
 }
 
@@ -111,6 +93,18 @@ pub struct Assign {
 }
 impl fmt::Display for Assign {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} = {}", self.name, self.value)
+        write!(f, "(= {} {})", self.name, self.value)
+    }
+}
+
+#[derive(Clone)]
+pub struct Logical {
+    pub left: Expr,
+    pub operator: Token,
+    pub right: Expr,
+}
+impl fmt::Display for Logical {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({} {} {})", self.operator, self.left, self.right)
     }
 }

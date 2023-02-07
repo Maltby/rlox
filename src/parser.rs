@@ -185,7 +185,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<expr::Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
         if let Some(token) = self.tokens.peek() {
             match token.r#type {
                 token_type::TokenType::Equal => {
@@ -207,6 +207,34 @@ impl Parser {
                 }
                 _ => {}
             }
+        }
+        Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<expr::Expr, ParseError> {
+        let mut expr = self.and()?;
+        while let token_type::TokenType::Or = self.tokens.peek().unwrap().r#type {
+            let operator = self.tokens.next().unwrap();
+            let right = self.and()?;
+            expr = expr::Expr::Logical(Box::new(expr::Logical {
+                operator,
+                left: expr,
+                right,
+            }));
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<expr::Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while let token_type::TokenType::And = self.tokens.peek().unwrap().r#type {
+            let operator = self.tokens.next().unwrap();
+            let right = self.equality()?;
+            expr = expr::Expr::Logical(Box::new(expr::Logical {
+                operator,
+                left: expr,
+                right,
+            }));
         }
         Ok(expr)
     }
@@ -240,10 +268,7 @@ impl Parser {
 
     // BNF: comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison(&mut self) -> Result<expr::Expr, ParseError> {
-        let mut expr = match self.term() {
-            Ok(expr) => expr,
-            Err(e) => return Err(e),
-        };
+        let mut expr = self.term()?;
         while let Some(token) = self.tokens.peek() {
             match token.r#type {
                 token_type::TokenType::Greater
