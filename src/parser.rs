@@ -68,15 +68,67 @@ impl Parser {
         })))
     }
 
-    // BNF: statement -> exprStmt | printStmt ;
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         match self.tokens.peek().unwrap().r#type {
             token_type::TokenType::Print => self.print_statement(),
             token_type::TokenType::LeftBrace => self.block_statement(),
             token_type::TokenType::If => self.if_statement(),
             token_type::TokenType::While => self.while_statement(),
+            token_type::TokenType::For => self.for_statement(),
             _ => self.expression_statement(),
         }
+    }
+
+    fn for_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.tokens.next(); // consume 'for'
+        self.expect_token(
+            token_type::TokenType::LeftParen,
+            "Expected '(' after 'for'".to_string(),
+        )?;
+        let initializer = match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Semicolon => None,
+            token_type::TokenType::Var => Some(self.var_declaration()?),
+            _ => Some(self.expression_statement()?),
+        };
+        let condition = match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::Semicolon => None,
+            _ => Some(self.expression()?),
+        };
+        self.expect_token(
+            token_type::TokenType::Semicolon,
+            "Expected ';' after for condition".to_string(),
+        )?;
+        let increment = match self.tokens.peek().unwrap().r#type {
+            token_type::TokenType::RightParen => None,
+            _ => Some(self.expression()?),
+        };
+        self.expect_token(
+            token_type::TokenType::RightParen,
+            "Expected ')' after for increment expression".to_string(),
+        )?;
+        let mut body = self.statement()?;
+
+        if let Some(increment) = increment {
+            body = stmt::Stmt::Block(Box::new(stmt::Block {
+                statements: vec![
+                    body,
+                    stmt::Stmt::Expr(Box::new(stmt::Expr {
+                        expression: increment,
+                    })),
+                ],
+            }))
+        };
+        let condition = match condition {
+            Some(condition) => condition,
+            None => expr::Expr::Literal(expr::Literal::Bool(true)),
+        };
+        body = stmt::Stmt::While(Box::new(stmt::While { condition, body }));
+        if let Some(initializer) = initializer {
+            body = stmt::Stmt::Block(Box::new(stmt::Block {
+                statements: vec![initializer, body],
+            }));
+        };
+        Ok(body)
     }
 
     fn while_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -218,7 +270,6 @@ impl Parser {
         }
     }
 
-    // BNF: expression -> equality ;
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
         self.assignment()
     }
@@ -278,7 +329,6 @@ impl Parser {
         Ok(expr)
     }
 
-    // BNF: equality -> comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality(&mut self) -> Result<expr::Expr, ParseError> {
         let mut expr = match self.comparison() {
             Ok(expr) => expr,
@@ -305,7 +355,6 @@ impl Parser {
         Ok(expr)
     }
 
-    // BNF: comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison(&mut self) -> Result<expr::Expr, ParseError> {
         let mut expr = self.term()?;
         while let Some(token) = self.tokens.peek() {
@@ -384,7 +433,6 @@ impl Parser {
         Ok(expr)
     }
 
-    // BNF: unary -> ( "!" | "-" ) unary | primary ;
     fn unary(&mut self) -> Result<expr::Expr, ParseError> {
         if let Some(token) = self.tokens.peek() {
             match token.r#type {
@@ -406,7 +454,6 @@ impl Parser {
         self.primary()
     }
 
-    // BNF: primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<expr::Expr, ParseError> {
         let token = match self.tokens.next() {
             Some(token) => token,
