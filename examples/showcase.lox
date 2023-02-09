@@ -1,0 +1,71 @@
+var a = "global a";
+var b = "global b";
+var c = "global c";
+{
+	var a = "outer a";
+	var b = "outer b";
+	{
+		var a = "inner a";
+		print a;
+		print b;
+		print c;
+	}
+	print a;
+	print b;
+	print c;
+}
+print a;
+print b;
+print c;
+print "";
+
+var a = 0;
+var b = 2;
+
+if (a > 1) {
+	print "> operator: fail";
+} else {
+	print "> operator: pass";
+}
+
+if (a < b) {
+	print "< operator: pass";
+} else {
+	print "< operator: fail";
+}
+
+var a = true;
+var b = false;
+
+if (a and b) {
+	print "and expression: fail";
+} else if (a or b) {
+	print "and expression: pass";
+} else {
+	print "and expression: fail";
+}
+
+print "or expression: pass" or "or expression: fail";
+print nil or "or expression: pass";
+print "";
+
+var a = 0;
+while (a <= 10) {
+	print a;
+	a = a + 1;
+}
+print "";
+
+for (a = 10; a >= 0; a = a - 1) {
+	print a;
+}
+print "";
+
+print "fib:";
+var a = 0;
+var temp;
+for (var b = 1; a < 10000; b = temp + b) {
+	print a;
+	temp = a;
+	a = b;
+}
