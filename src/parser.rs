@@ -51,17 +51,10 @@ impl Parser {
             }
             _ => None,
         };
-        match self.tokens.peek().unwrap().r#type {
-            token_type::TokenType::Semicolon => {
-                self.tokens.next();
-            }
-            _ => {
-                return Err(ParseError {
-                    description: "Expected variable declaration to end with a semicolon"
-                        .to_string(),
-                })
-            }
-        }
+        self.expect_token(
+            token_type::TokenType::Semicolon,
+            "Expected variable declaration to end with a semicolon".to_string(),
+        )?;
         Ok(stmt::Stmt::VarDec(Box::new(stmt::VarDec {
             name,
             expression,
@@ -150,50 +143,31 @@ impl Parser {
         &mut self,
         expected: token_type::TokenType,
         err_msg: String,
-    ) -> Result<(), ParseError> {
+    ) -> Result<token_type::Token, ParseError> {
         match self.tokens.peek() {
-            Some(token) => {
-                match &token.r#type {
-                    x if *x == expected => {
-                        self.tokens.next(); // consume expected token
-                        Ok(())
-                    }
-                    _ => Err(ParseError {
-                        description: err_msg,
-                    }),
-                }
-            }
+            Some(token) => match &token.r#type {
+                x if *x == expected => Ok(self.tokens.next().unwrap()),
+                _ => Err(ParseError {
+                    description: err_msg,
+                }),
+            },
             None => Err(ParseError {
                 description: format!("Expected {} but found nothing", expected),
             }),
         }
     }
 
-    // TODO: refactor
     fn if_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         self.tokens.next(); // consume 'if'
-        let condition;
-        match self.tokens.peek().unwrap().r#type {
-            token_type::TokenType::LeftParen => {
-                self.tokens.next(); // consume '('
-                condition = self.expression()?;
-            }
-            _ => {
-                return Err(ParseError {
-                    description: "Expected '(' after 'if'".to_string(),
-                })
-            }
-        }
-        match self.tokens.peek().unwrap().r#type {
-            token_type::TokenType::RightParen => {
-                self.tokens.next(); // consume ')'
-            }
-            _ => {
-                return Err(ParseError {
-                    description: "Expected ')' after if condition".to_string(),
-                })
-            }
-        }
+        self.expect_token(
+            token_type::TokenType::LeftParen,
+            "Expected '(' after 'if'".to_string(),
+        )?;
+        let condition = self.expression()?;
+        self.expect_token(
+            token_type::TokenType::RightParen,
+            "Expected ')' after if condition".to_string(),
+        )?;
         let then_branch = self.statement()?;
         let mut else_branch = None;
         if let token_type::TokenType::Else = self.tokens.peek().unwrap().r#type {
@@ -210,22 +184,13 @@ impl Parser {
     fn print_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         self.tokens.next(); // consume 'print'
         let value = self.expression()?;
-        if let Some(token) = self.tokens.peek() {
-            return match token.r#type {
-                token_type::TokenType::Semicolon => {
-                    self.tokens.next(); // consume semicolon
-                    Ok(stmt::Stmt::Print(Box::new(stmt::Print {
-                        expression: value,
-                    })))
-                }
-                _ => Err(ParseError {
-                    description: "Expected statement to end with a semicolon".to_string(),
-                }),
-            };
-        }
-        Err(ParseError {
-            description: "Expected statement to end with a semicolon".to_string(),
-        })
+        self.expect_token(
+            token_type::TokenType::Semicolon,
+            "Expected print statement to end with a semicolon".to_string(),
+        )?;
+        Ok(stmt::Stmt::Print(Box::new(stmt::Print {
+            expression: value,
+        })))
     }
 
     fn block_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -252,22 +217,11 @@ impl Parser {
 
     fn expression_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
         let value = self.expression()?;
-        match self.tokens.peek() {
-            Some(token) => {
-                match token.r#type {
-                    token_type::TokenType::Semicolon => {
-                        self.tokens.next(); // consume semicolon
-                        Ok(stmt::Stmt::Expr(Box::new(stmt::Expr { expression: value })))
-                    }
-                    _ => Err(ParseError {
-                        description: "Expected statement to end with a semicolon".to_string(),
-                    }),
-                }
-            }
-            None => Err(ParseError {
-                description: "Expected statement to end with a semicolon".to_string(),
-            }),
-        }
+        self.expect_token(
+            token_type::TokenType::Semicolon,
+            "Expected expression statement to end with a semicolon".to_string(),
+        )?;
+        Ok(stmt::Stmt::Expr(Box::new(stmt::Expr { expression: value })))
     }
 
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
