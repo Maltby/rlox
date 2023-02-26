@@ -55,10 +55,7 @@ impl Parser {
             token_type::TokenType::Semicolon,
             "Expected variable declaration to end with a semicolon".to_string(),
         )?;
-        Ok(stmt::Stmt::VarDec(Box::new(stmt::VarDec {
-            name,
-            expression,
-        })))
+        Ok(stmt::Stmt::VarDec(stmt::VarDec { name, expression }))
     }
 
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -102,24 +99,27 @@ impl Parser {
         let mut body = self.statement()?;
 
         if let Some(increment) = increment {
-            body = stmt::Stmt::Block(Box::new(stmt::Block {
+            body = stmt::Stmt::Block(stmt::Block {
                 statements: vec![
                     body,
-                    stmt::Stmt::Expr(Box::new(stmt::Expr {
+                    stmt::Stmt::Expr(stmt::Expr {
                         expression: increment,
-                    })),
+                    }),
                 ],
-            }))
+            })
         };
         let condition = match condition {
             Some(condition) => condition,
             None => expr::Expr::Literal(expr::Literal::Bool(true)),
         };
-        body = stmt::Stmt::While(Box::new(stmt::While { condition, body }));
+        body = stmt::Stmt::While(stmt::While {
+            condition,
+            body: Box::new(body),
+        });
         if let Some(initializer) = initializer {
-            body = stmt::Stmt::Block(Box::new(stmt::Block {
+            body = stmt::Stmt::Block(stmt::Block {
                 statements: vec![initializer, body],
-            }));
+            });
         };
         Ok(body)
     }
@@ -136,7 +136,10 @@ impl Parser {
             "Expected ')' after while condition".to_string(),
         )?;
         let body = self.statement()?;
-        Ok(stmt::Stmt::While(Box::new(stmt::While { condition, body })))
+        Ok(stmt::Stmt::While(stmt::While {
+            condition,
+            body: Box::new(body),
+        }))
     }
 
     fn expect_token(
@@ -168,17 +171,17 @@ impl Parser {
             token_type::TokenType::RightParen,
             "Expected ')' after if condition".to_string(),
         )?;
-        let then_branch = self.statement()?;
+        let then_branch = Box::new(self.statement()?);
         let mut else_branch = None;
         if let token_type::TokenType::Else = self.tokens.peek().unwrap().r#type {
             self.tokens.next(); // consume 'else'
-            else_branch = Some(self.statement()?);
+            else_branch = Some(Box::new(self.statement()?));
         };
-        Ok(stmt::Stmt::If(Box::new(stmt::If {
+        Ok(stmt::Stmt::If(stmt::If {
             condition,
             then_branch,
             else_branch,
-        })))
+        }))
     }
 
     fn print_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -188,9 +191,7 @@ impl Parser {
             token_type::TokenType::Semicolon,
             "Expected print statement to end with a semicolon".to_string(),
         )?;
-        Ok(stmt::Stmt::Print(Box::new(stmt::Print {
-            expression: value,
-        })))
+        Ok(stmt::Stmt::Print(stmt::Print { expression: value }))
     }
 
     fn block_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -200,7 +201,7 @@ impl Parser {
             match token.r#type {
                 token_type::TokenType::RightBrace => {
                     self.tokens.next(); // consume '}'
-                    return Ok(stmt::Stmt::Block(Box::new(stmt::Block { statements })));
+                    return Ok(stmt::Stmt::Block(stmt::Block { statements }));
                 }
                 token_type::TokenType::Eof => {
                     return Err(ParseError {
@@ -221,7 +222,7 @@ impl Parser {
             token_type::TokenType::Semicolon,
             "Expected expression statement to end with a semicolon".to_string(),
         )?;
-        Ok(stmt::Stmt::Expr(Box::new(stmt::Expr { expression: value })))
+        Ok(stmt::Stmt::Expr(stmt::Expr { expression: value }))
     }
 
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
